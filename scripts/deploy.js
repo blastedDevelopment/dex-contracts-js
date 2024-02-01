@@ -7,11 +7,9 @@ const utils = ethers.utils;
 const provider = ethers.provider;
 require("dotenv").config();
 let tx, receipt; //transactions
-let pancakeFactory, pancakeRouter;
+let blastedFactory, blastedRouter;
 let deployer, caller, user, randomUser;
-
 const WETH = '0x4200000000000000000000000000000000000023';
-
 
 const setAddresses = async () => {
   console.log("\n*** SETTING ADDRESSES ***");
@@ -24,26 +22,26 @@ const setAddresses = async () => {
 
 const deployContracts = async () => {
   console.log("\n*** DEPLOYING CONTRACTS ***");
-  const PancakeFactory = await ethers.getContractFactory(
-    "PancakeFactory",
+  const BlastedFactory = await ethers.getContractFactory(
+    "BlastedFactory",
     deployer
   );
-  pancakeFactory = await PancakeFactory.deploy(deployer.address);
-  await pancakeFactory.deployed();
-  console.log(`pancakeFactory deployed to ${pancakeFactory.address}`);
+  blastedFactory = await BlastedFactory.deploy(deployer.address);
+  await blastedFactory.deployed();
+  console.log(`blastedFactory deployed to ${blastedFactory.address}`);
 
-  const PancakeRouter = await ethers.getContractFactory(
-    "PancakeRouter",
+  const BlastedRouter = await ethers.getContractFactory(
+    "BlastedRouter",
     deployer
   );
-  pancakeRouter = await PancakeRouter.deploy(pancakeFactory.address, WETH);
-  await pancakeRouter.deployed();
-  console.log(`pancakeRouter deployed to ${pancakeRouter.address}`);
+  blastedRouter = await BlastedRouter.deploy(blastedFactory.address, WETH);
+  await blastedRouter.deployed();
+  console.log(`blastedRouter deployed to ${blastedRouter.address}`);
 };
 
 const fetchInitCodePairHash = async () => {
   console.log("\n*** FETCHING INIT_CODE_PAIR_HASH ***");
-  const initCodePairHash = await pancakeFactory.INIT_CODE_PAIR_HASH();
+  const initCodePairHash = await blastedFactory.INIT_CODE_PAIR_HASH();
   console.log(`INIT_CODE_PAIR_HASH: ${initCodePairHash}`);
 };
 

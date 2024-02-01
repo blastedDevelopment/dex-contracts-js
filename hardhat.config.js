@@ -32,8 +32,8 @@ module.exports = {
         network: "blastTest",
         chainId: 168587773,
         urls: {
-          apiURL: "https://testnet.blastscan.io/api",
-          browserURL: "https://testnet.blastscan.io/",
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan",
+          browserURL: "https://testnet.blastscan.io",
         },
       },
     ],
