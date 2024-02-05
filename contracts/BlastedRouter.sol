@@ -14,6 +14,14 @@ contract BlastedRouter is IBlastedRouter02 {
 
     address public immutable override factory;
     address public immutable override WETH;
+    mapping(address => CounterStruct) public counters;
+
+    struct CounterStruct {
+        uint256 addLiquidityCount;
+        uint256 swapCount;
+        uint256 removeLiquidityCount;
+        uint256 blockNo:
+    }
 
     modifier ensure(uint256 deadline) {
         require(deadline >= block.timestamp, "BlastedRouter: EXPIRED");
@@ -27,6 +35,22 @@ contract BlastedRouter is IBlastedRouter02 {
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+    }
+
+    function _updateCounter(address user, string memory operation) internal {
+        CounterStruct storage counter = counters[user];
+        if(counter.blockNo != block.number) {
+            counter.blockNo = block.number;
+            if(keccak256(bytes(operation)) == keccak256(bytes("addLiquidity"))) {
+                counter.addLiquidityCount += 1;
+            }
+            if(keccak256(bytes(operation)) == keccak256(bytes("swap"))) {
+                counter.swapCount += 1;
+            }
+            if(keccak256(bytes(operation)) == keccak256(bytes("removeLiquidity"))) {
+                counter.removeLiquidityCount += 1;
+            }
+        }
     }
 
     // **** ADD LIQUIDITY ****
@@ -93,6 +117,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256 amountA, uint256 amountB, uint256 liquidity)
     {
+         _updateCounter(msg.sender, "addLiquidity");
         (amountA, amountB) = _addLiquidity(
             tokenA,
             tokenB,
@@ -122,6 +147,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256 amountToken, uint256 amountETH, uint256 liquidity)
     {
+         _updateCounter(msg.sender, "addLiquidity");
         (amountToken, amountETH) = _addLiquidity(
             token,
             WETH,
@@ -156,6 +182,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256 amountA, uint256 amountB)
     {
+        _updateCounter(msg.sender, "removeLiquidity");
         address pair = BlastedLibrary.pairFor(factory, tokenA, tokenB);
         IBlastedPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = IBlastedPair(pair).burn(to);
@@ -181,6 +208,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256 amountToken, uint256 amountETH)
     {
+        _updateCounter(msg.sender, "removeLiquidity");
         (amountToken, amountETH) = removeLiquidity(
             token,
             WETH,
@@ -208,6 +236,7 @@ contract BlastedRouter is IBlastedRouter02 {
         bytes32 r,
         bytes32 s
     ) external virtual override returns (uint256 amountA, uint256 amountB) {
+        _updateCounter(msg.sender, "removeLiquidity");
         address pair = BlastedLibrary.pairFor(factory, tokenA, tokenB);
         uint256 value = approveMax ? uint256(-1) : liquidity;
         IBlastedPair(pair).permit(
@@ -247,6 +276,7 @@ contract BlastedRouter is IBlastedRouter02 {
         override
         returns (uint256 amountToken, uint256 amountETH)
     {
+        _updateCounter(msg.sender, "removeLiquidity");
         address pair = BlastedLibrary.pairFor(factory, token, WETH);
         uint256 value = approveMax ? uint256(-1) : liquidity;
         IBlastedPair(pair).permit(
@@ -277,6 +307,7 @@ contract BlastedRouter is IBlastedRouter02 {
         address to,
         uint256 deadline
     ) public virtual override ensure(deadline) returns (uint256 amountETH) {
+        _updateCounter(msg.sender, "removeLiquidity");
         (, amountETH) = removeLiquidity(
             token,
             WETH,
@@ -307,6 +338,7 @@ contract BlastedRouter is IBlastedRouter02 {
         bytes32 r,
         bytes32 s
     ) external virtual override returns (uint256 amountETH) {
+        _updateCounter(msg.sender, "removeLiquidity");
         address pair = BlastedLibrary.pairFor(factory, token, WETH);
         uint256 value = approveMax ? uint256(-1) : liquidity;
         IBlastedPair(pair).permit(
@@ -367,6 +399,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         amounts = BlastedLibrary.getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
@@ -394,6 +427,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         amounts = BlastedLibrary.getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= amountInMax,
@@ -421,6 +455,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         require(path[0] == WETH, "BlastedRouter: INVALID_PATH");
         amounts = BlastedLibrary.getAmountsOut(factory, msg.value, path);
         require(
@@ -450,6 +485,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         require(path[path.length - 1] == WETH, "BlastedRouter: INVALID_PATH");
         amounts = BlastedLibrary.getAmountsIn(factory, amountOut, path);
         require(
@@ -480,6 +516,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         require(path[path.length - 1] == WETH, "BlastedRouter: INVALID_PATH");
         amounts = BlastedLibrary.getAmountsOut(factory, amountIn, path);
         require(
@@ -510,6 +547,7 @@ contract BlastedRouter is IBlastedRouter02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
+        _updateCounter(msg.sender, "swap");
         require(path[0] == WETH, "BlastedRouter: INVALID_PATH");
         amounts = BlastedLibrary.getAmountsIn(factory, amountOut, path);
         require(
@@ -575,6 +613,7 @@ contract BlastedRouter is IBlastedRouter02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
+        _updateCounter(msg.sender, "swap");
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
@@ -596,6 +635,7 @@ contract BlastedRouter is IBlastedRouter02 {
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) {
+        _updateCounter(msg.sender, "swap");
         require(path[0] == WETH, "BlastedRouter: INVALID_PATH");
         uint256 amountIn = msg.value;
         IWETH(WETH).deposit{value: amountIn}();
@@ -621,6 +661,7 @@ contract BlastedRouter is IBlastedRouter02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
+        _updateCounter(msg.sender, "swap");
         require(path[path.length - 1] == WETH, "BlastedRouter: INVALID_PATH");
         TransferHelper.safeTransferFrom(
             path[0],

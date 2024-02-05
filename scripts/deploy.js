@@ -13,10 +13,10 @@ const WETH = '0x4200000000000000000000000000000000000023';
 
 const setAddresses = async () => {
   console.log("\n*** SETTING ADDRESSES ***");
-  //  [deployer] = await ethers.getSigners();
-  deployer = await ethers.getImpersonatedSigner(
-    "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
-  );
+   [deployer] = await ethers.getSigners();
+  // deployer = await ethers.getImpersonatedSigner(
+  //   "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
+  // );
   console.log(`Deployer: ${deployer.address}`);
 };
 
