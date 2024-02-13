@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.6.6;
 
+import "./interfaces/IBlast.sol";
 import "./interfaces/IBlastedRouter02.sol";
 import "./interfaces/IBlastedFactory.sol";
 import "./libraries/BlastedLibrary.sol";
@@ -14,6 +15,7 @@ contract BlastedRouter is IBlastedRouter02 {
 
     address public immutable override factory;
     address public immutable override WETH;
+    IBlast public constant BLAST = IBlast(0x4300000000000000000000000000000000000002);
     mapping(address => CounterStruct) public counters;
 
     struct CounterStruct {
@@ -31,6 +33,8 @@ contract BlastedRouter is IBlastedRouter02 {
     constructor(address _factory, address _WETH) public {
         factory = _factory;
         WETH = _WETH;
+        BLAST.configureClaimableGas();
+        BLAST.configureGovernor(msg.sender); 
     }
 
     receive() external payable {
