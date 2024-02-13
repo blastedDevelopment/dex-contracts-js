@@ -20,7 +20,7 @@ contract BlastedRouter is IBlastedRouter02 {
         uint256 addLiquidityCount;
         uint256 swapCount;
         uint256 removeLiquidityCount;
-        uint256 blockNo:
+        uint256 blockNo;
     }
 
     modifier ensure(uint256 deadline) {
