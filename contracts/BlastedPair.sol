@@ -126,10 +126,21 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
     function claimRebasingTokens() external {
         address feeToAddress = IBlastedFactory(factory).feeTo();
         require(msg.sender == feeToAddress, "BlastedPair: Caller is not feeTo");
-        uint256 claimedUSDB = USDB.claim(feeToAddress, USDB.getClaimableAmount(address(this)));
-        uint256 claimedWETH = WETH.claim(feeToAddress, WETH.getClaimableAmount(address(this)));
-        emit ClaimedRebasingTokens(feeToAddress, claimedUSDB, claimedWETH);
+        uint256 claimableUSDB = USDB.getClaimableAmount(address(this));
+        uint256 claimableWETH = WETH.getClaimableAmount(address(this));
+        uint256 claimedUSDB = 0;
+        uint256 claimedWETH = 0;
+        if (claimableUSDB > 0) {
+            claimedUSDB = USDB.claim(feeToAddress, claimableUSDB);
+        }
+        if (claimableWETH > 0) {
+            claimedWETH = WETH.claim(feeToAddress, claimableWETH);
+        }
+        if (claimedUSDB > 0 || claimedWETH > 0) {
+            emit ClaimedRebasingTokens(feeToAddress, claimedUSDB, claimedWETH);
+        }
     }
+
 
     // this low-level function should be called from a contract which performs important safety checks
     function mint(address to) external lock returns (uint liquidity) {
