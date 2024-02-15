@@ -97,6 +97,9 @@ const fetchInitCodePairHash = async () => {
 };
 
 
+
+
+
 const getClaimable = async () => {
   console.log('\n*** CHECKING CLAIMABLE AMOUNT ***');
   try {
@@ -106,7 +109,8 @@ const getClaimable = async () => {
     if (pairAddress !== ethers.constants.AddressZero) {
       const pairBalance = await bEP20Token.balanceOf(pairAddress);
       console.log("Balance in Pair: ", pairBalance.toString());
-
+      const configuration = await WETHContract.connect(deployer).getConfiguration(pairAddress);
+      console.log("Pair WETH configuration.", configuration);
       const claimableBalance = await WETHContract.connect(deployer).getClaimableAmount(pairAddress);
       console.log("Claimable Balance: ", claimableBalance.toString());
     } else {
@@ -124,8 +128,8 @@ const main = async () => {
   await fetchInitCodePairHash();
   await setFeeTo();
   await addLiquidity();
-  await time.increase(31556926);
-  console.log("TIME INCREASED A YEAR")
+  // await time.increase(31556926);
+  // console.log("TIME INCREASED A YEAR")
   await getClaimable();
 
 
