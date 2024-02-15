@@ -25,10 +25,10 @@ const WETHContract = new ethers.Contract(
 const setAddresses = async () => {
   console.log("\n*** SETTING ADDRESSES ***");
    [deployer] = await ethers.getSigners();
-  deployer = await ethers.getImpersonatedSigner(
-    "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
-  );
-  // console.log(`Deployer: ${deployer.address}`);
+  // deployer = await ethers.getImpersonatedSigner(
+  //   "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
+  // );
+  console.log(`Deployer: ${deployer.address}`);
 };
 
 const deployContracts = async () => {
@@ -95,10 +95,6 @@ const fetchInitCodePairHash = async () => {
   const initCodePairHash = await blastedFactory.INIT_CODE_PAIR_HASH();
   console.log(`INIT_CODE_PAIR_HASH: ${initCodePairHash}`);
 };
-
-
-
-
 
 const getClaimable = async () => {
   console.log('\n*** CHECKING CLAIMABLE AMOUNT ***');
