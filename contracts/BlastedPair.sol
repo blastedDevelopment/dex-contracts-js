@@ -8,11 +8,18 @@ import './libraries/UQ112x112.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IBlastedFactory.sol';
 import './interfaces/IBlastedCallee.sol';
-// import "./interfaces/IBlast.sol";
+
+interface IERC20Rebasing {
+  function configure(uint8 mode) external returns (uint256);
+  function claim(address recipient, uint256 amount) external returns (uint256);
+  function getClaimableAmount(address account) external view returns (uint256);
+}
+
 
 contract BlastedPair is IBlastedPair, BlastedERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
+    
 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
@@ -28,6 +35,12 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
     uint public price0CumulativeLast;
     uint public price1CumulativeLast;
     uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
+
+    
+
+    IERC20Rebasing public constant USDB = IERC20Rebasing(0x4200000000000000000000000000000000000022);
+    IERC20Rebasing public constant WETH = IERC20Rebasing(0x4200000000000000000000000000000000000023);
+
 
     uint private unlocked = 1;
     modifier lock() {
@@ -59,9 +72,12 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         address indexed to
     );
     event Sync(uint112 reserve0, uint112 reserve1);
+    event ClaimedRebasingTokens(address indexed feeTo, uint256 claimedUSDB, uint256 claimedWETH);
 
     constructor() public {
         factory = msg.sender;
+        USDB.configure(2);
+        WETH.configure(2);
     }
 
     // called once by the factory at time of deployment
@@ -106,6 +122,14 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         } else if (_kLast != 0) {
             kLast = 0;
         }
+    }
+
+    function claimRebasingTokens() external {
+        address feeToAddress = IBlastedFactory(factory).feeTo();
+        require(msg.sender == feeToAddress, "BlastedPair: Caller is not feeTo");
+        uint256 claimedUSDB = USDB.claim(feeToAddress, USDB.getClaimableAmount(address(this)));
+        uint256 claimedWETH = WETH.claim(feeToAddress, WETH.getClaimableAmount(address(this)));
+        emit ClaimedRebasingTokens(feeToAddress, claimedUSDB, claimedWETH);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
