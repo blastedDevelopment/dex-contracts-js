@@ -15,7 +15,6 @@ interface IERC20Rebasing {
   function getClaimableAmount(address account) external view returns (uint256);
 }
 
-
 contract BlastedPair is IBlastedPair, BlastedERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
@@ -195,7 +194,7 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         require(to != _token0 && to != _token1, 'Blasted: INVALID_TO');
         if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
         if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) IBlastedCallee(to).pancakeCall(msg.sender, amount0Out, amount1Out, data);
+        if (data.length > 0) IBlastedCallee(to).blastedCall(msg.sender, amount0Out, amount1Out, data);
         balance0 = IERC20(_token0).balanceOf(address(this));
         balance1 = IERC20(_token1).balanceOf(address(this));
         }
