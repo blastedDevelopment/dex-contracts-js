@@ -8,6 +8,7 @@ import './libraries/UQ112x112.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IBlastedFactory.sol';
 import './interfaces/IBlastedCallee.sol';
+// import "./interfaces/IBlast.sol";
 
 contract BlastedPair is IBlastedPair, BlastedERC20 {
     using SafeMath  for uint;
