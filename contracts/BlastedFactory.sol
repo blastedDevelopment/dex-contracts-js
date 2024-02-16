@@ -7,8 +7,8 @@ import './BlastedPair.sol';
 contract BlastedFactory is IBlastedFactory {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(BlastedPair).creationCode));
 
-    address public gasStation; // gas station reclaims fees, and distribute it back to users
-    address public rebaseRecipient;
+    address public gasStation; // TODO gasStation.sol gas station reclaims fees, and distribute it back to users
+    address public rebaseRecipient; // TODO jackPotController.sol distribute jackpot to the game
     address public feeTo;
     address public feeToSetter;
     uint256 public shouldClaimInterval = 7 minutes; // 1 week on main
@@ -57,7 +57,7 @@ contract BlastedFactory is IBlastedFactory {
 
     function setGasStation(address _gasStation) external {
         require(msg.sender == feeToSetter, 'Blasted: FORBIDDEN');
-        feeTo = _gasStation;
+        gasStation = _gasStation;
     }
 
     function setRebaseRecipient(address _rebaseRecipient) external {
