@@ -32,9 +32,10 @@ contract BlastedRouter is IBlastedRouter02 {
 
     constructor(address _factory, address _WETH) public {
         factory = _factory;
+        address gasStation = IBlastedFactory(_factory).gasStation();
         WETH = _WETH;
         BLAST.configureClaimableGas();
-        BLAST.configureGovernor(msg.sender); 
+        BLAST.configureGovernor(gasStation); 
     }
 
     receive() external payable {

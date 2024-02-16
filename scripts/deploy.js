@@ -7,10 +7,10 @@ const utils = ethers.utils;
 const provider = ethers.provider;
 require("dotenv").config();
 let tx, receipt; //transactions
-let blastedFactory, blastedRouter, bEP20Token;
+let blastedFactory, blastedRouter, BlastToken;
 let deployer, caller, user, randomUser;
 const WETH = '0x4200000000000000000000000000000000000023';
-const LiquidityAllocation = utils.parseEther("1");
+const LiquidityAllocation = utils.parseEther("0.1");
 
 const RebaseABI = require('./rebase.json');
 const { factory } = require("typescript");
@@ -24,10 +24,10 @@ const WETHContract = new ethers.Contract(
 
 const setAddresses = async () => {
   console.log("\n*** SETTING ADDRESSES ***");
-  //  [deployer] = await ethers.getSigners();
-  deployer = await ethers.getImpersonatedSigner(
-    "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
-  );
+   [deployer] = await ethers.getSigners();
+  // deployer = await ethers.getImpersonatedSigner(
+  //   "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
+  // );
   console.log(`Deployer: ${deployer.address}`);
 };
 
@@ -37,7 +37,7 @@ const deployContracts = async () => {
     "BlastedFactory",
     deployer
   );
-  blastedFactory = await BlastedFactory.deploy(deployer.address, deployer.address);
+  blastedFactory = await BlastedFactory.deploy(deployer.address, deployer.address, deployer.address);
   await blastedFactory.deployed();
   console.log(`blastedFactory deployed to ${blastedFactory.address}`);
 
@@ -49,13 +49,13 @@ const deployContracts = async () => {
   await blastedRouter.deployed();
   console.log(`blastedRouter deployed to ${blastedRouter.address}`);
 
-  const BEP20Token = await ethers.getContractFactory(
-    "BEP20Token",
+  const BLAST = await ethers.getContractFactory(
+    "BLAST",
     deployer
   );
-  bEP20Token = await BEP20Token.deploy();
-  await bEP20Token.deployed();
-  console.log(`bEP20Token deployed to ${bEP20Token.address}`);
+  BlastToken = await BLAST.deploy();
+  await BlastToken.deployed();
+  console.log(`BlastToken deployed to ${BlastToken.address}`);
 };
 
 
@@ -67,14 +67,14 @@ const setFeeTo = async () => {
 };
 const addLiquidity = async () => {
   console.log('\n*** ADDING LIQUIDITY ***');
-  const balanceBefore = await bEP20Token.balanceOf(deployer.address);
+  const balanceBefore = await BlastToken.balanceOf(deployer.address);
   console.log("balanceBefore = ", balanceBefore)
-  tx = await bEP20Token.approve(blastedRouter.address, ethers.constants.MaxUint256);
+  tx = await BlastToken.approve(blastedRouter.address, ethers.constants.MaxUint256);
   receipt = await tx.wait();
   console.log("approved called")
 
   tx = await blastedRouter.addLiquidityETH(
-    bEP20Token.address,
+    BlastToken.address,
     balanceBefore,
     0,
     LiquidityAllocation,
@@ -85,7 +85,7 @@ const addLiquidity = async () => {
   );
   receipt = await tx.wait();
 
-  const balanceAfter = await bEP20Token.balanceOf(deployer.address);
+  const balanceAfter = await BlastToken.balanceOf(deployer.address);
   console.log("balanceAfter = ", balanceAfter)
   console.log('\n*** LIQUIDITY ADDED ***');
 };
@@ -99,11 +99,11 @@ const fetchInitCodePairHash = async () => {
 const getClaimable = async () => {
   console.log('\n*** CHECKING CLAIMABLE AMOUNT ***');
   try {
-    const pairAddress = await blastedFactory.getPair(bEP20Token.address, WETH);
+    const pairAddress = await blastedFactory.getPair(BlastToken.address, WETH);
     console.log(`Pair Address: ${pairAddress}`);
 
     if (pairAddress !== ethers.constants.AddressZero) {
-      const pairBalance = await bEP20Token.balanceOf(pairAddress);
+      const pairBalance = await BlastToken.balanceOf(pairAddress);
       console.log("Balance in Pair: ", pairBalance.toString());
       const configuration = await WETHContract.connect(deployer).getConfiguration(pairAddress);
       console.log("Pair WETH configuration.", configuration);

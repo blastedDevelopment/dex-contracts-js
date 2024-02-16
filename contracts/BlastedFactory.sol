@@ -7,6 +7,7 @@ import './BlastedPair.sol';
 contract BlastedFactory is IBlastedFactory {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(BlastedPair).creationCode));
 
+    address public gasStation; // gas station reclaims fees, and distribute it back to users
     address public rebaseRecipient;
     address public feeTo;
     address public feeToSetter;
@@ -17,9 +18,10 @@ contract BlastedFactory is IBlastedFactory {
 
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
-    constructor(address _feeToSetter, address _rebaseRecipient) public {
+    constructor(address _feeToSetter, address _rebaseRecipient, address _gasStation) public {
         feeToSetter = _feeToSetter;
         rebaseRecipient = _rebaseRecipient;
+        gasStation = _gasStation;
     }
 
     function allPairsLength() external view returns (uint) {
@@ -51,6 +53,11 @@ contract BlastedFactory is IBlastedFactory {
     function setFeeTo(address _feeTo) external {
         require(msg.sender == feeToSetter, 'Blasted: FORBIDDEN');
         feeTo = _feeTo;
+    }
+
+    function setGasStation(address _gasStation) external {
+        require(msg.sender == feeToSetter, 'Blasted: FORBIDDEN');
+        feeTo = _gasStation;
     }
 
     function setRebaseRecipient(address _rebaseRecipient) external {
