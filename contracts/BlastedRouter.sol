@@ -9,14 +9,21 @@ import "./libraries/SafeMath.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IWETH.sol";
 import "./libraries/TransferHelper.sol";
+import "./libraries/EnumerableSet.sol";
 
 contract BlastedRouter is IBlastedRouter02 {
     using SafeMath for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     address public immutable override factory;
     address public immutable override WETH;
     IBlast public constant BLAST = IBlast(0x4300000000000000000000000000000000000002);
-    mapping(address => CounterStruct) public counters;
+
+    // logs for gas re-distributon
+    uint256 public startTime;
+    uint256 public epochTime = 7 minutes; // 7 days on main
+    mapping(address => mapping(uint256 => CounterStruct)) public counters;
+    mapping(uint256 => EnumerableSet.AddressSet) private epochToAddresses;
 
     struct CounterStruct {
         uint256 addLiquidityCount;
@@ -30,20 +37,39 @@ contract BlastedRouter is IBlastedRouter02 {
         _;
     }
 
+    function getCurrentEpoch() public view returns (uint256) {
+        return ((block.timestamp - startTime) + epochTime) / epochTime;
+    }
+
+    function getEpochLength(uint256 epoch) public view returns (uint256) {
+        return epochToAddresses[epoch].length();
+    }
+
+    function getAddressByEpochAndIndex(uint256 epoch, uint256 index) public view returns (address) {
+        require(index < epochToAddresses[epoch].length(), "Index out of bounds");
+        return epochToAddresses[epoch].get(index);
+    }
+
     constructor(address _factory, address _WETH) public {
         factory = _factory;
         address gasStation = IBlastedFactory(_factory).gasStation();
         WETH = _WETH;
         BLAST.configureClaimableGas();
         BLAST.configureGovernor(gasStation); 
+        startTime = block.timestamp;
     }
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
 
-    function _updateCounter(address user, string memory operation) internal {
-        CounterStruct storage counter = counters[user];
+   function _updateCounter(address user, string memory operation) internal {
+        uint256 currentEpoch = getCurrentEpoch();
+        CounterStruct storage counter = counters[user][currentEpoch];
+        bool isUserAlreadyAdded = epochToAddresses[currentEpoch].contains(user);
+        if (!isUserAlreadyAdded) {
+        epochToAddresses[currentEpoch].add(user);
+        }
         if(counter.blockNo != block.number) {
             counter.blockNo = block.number;
             if(keccak256(bytes(operation)) == keccak256(bytes("addLiquidity"))) {
