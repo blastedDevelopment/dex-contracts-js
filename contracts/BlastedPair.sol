@@ -19,7 +19,7 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
     
-
+    uint256 public nextRebase;
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
@@ -77,6 +77,8 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         factory = msg.sender;
         USDB.configure(2);
         WETH.configure(2);
+        uint256 shouldClaimInterval = IBlastedFactory(factory).shouldClaimInterval();
+        nextRebase = shouldClaimInterval + block.timestamp;
     }
 
     // called once by the factory at time of deployment
@@ -123,22 +125,37 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         }
     }
 
-    function claimRebasingTokens() external {
-        address feeToAddress = IBlastedFactory(factory).feeTo();
-        require(msg.sender == feeToAddress, "BlastedPair: Caller is not feeTo");
+    function _claimRebasingTokens() private {
+        address rebaseRecipient = IBlastedFactory(factory).rebaseRecipient();
         uint256 claimableUSDB = USDB.getClaimableAmount(address(this));
         uint256 claimableWETH = WETH.getClaimableAmount(address(this));
         uint256 claimedUSDB = 0;
         uint256 claimedWETH = 0;
+        uint256 shouldClaimInterval = IBlastedFactory(factory).shouldClaimInterval();
+        nextRebase = shouldClaimInterval + block.timestamp;
         if (claimableUSDB > 0) {
-            claimedUSDB = USDB.claim(feeToAddress, claimableUSDB);
+            claimedUSDB = USDB.claim(rebaseRecipient, claimableUSDB);
         }
         if (claimableWETH > 0) {
-            claimedWETH = WETH.claim(feeToAddress, claimableWETH);
+            claimedWETH = WETH.claim(rebaseRecipient, claimableWETH);
         }
         if (claimedUSDB > 0 || claimedWETH > 0) {
-            emit ClaimedRebasingTokens(feeToAddress, claimedUSDB, claimedWETH);
+            emit ClaimedRebasingTokens(rebaseRecipient, claimedUSDB, claimedWETH);
         }
+    }
+
+    function claimRebasingTokens() external {
+        _claimRebasingTokens();
+    }
+
+    function _shouldClaim() private view returns (bool) {
+        bool isToken0Rebasing = token0 == address(USDB) || token0 == address(WETH);
+        bool isToken1Rebasing = token1 == address(USDB) || token1 == address(WETH);
+        return (isToken0Rebasing || isToken1Rebasing) && (block.timestamp >= nextRebase);
+    }
+
+    function shouldClaim() public view returns (bool) {
+        return _shouldClaim();
     }
 
 
@@ -174,7 +191,6 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         uint balance0 = IERC20(_token0).balanceOf(address(this));
         uint balance1 = IERC20(_token1).balanceOf(address(this));
         uint liquidity = balanceOf[address(this)];
-
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
@@ -193,6 +209,11 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+        if (_shouldClaim()) {
+            _claimRebasingTokens();
+            uint256 shouldClaimInterval = IBlastedFactory(factory).shouldClaimInterval();
+            nextRebase = shouldClaimInterval + block.timestamp;
+        }
         require(amount0Out > 0 || amount1Out > 0, 'Blasted: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         require(amount0Out < _reserve0 && amount1Out < _reserve1, 'Blasted: INSUFFICIENT_LIQUIDITY');

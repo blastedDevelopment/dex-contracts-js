@@ -93,5 +93,7 @@ interface IBlastedPair {
 
     function sync() external;
 
+    function claimRebasingTokens() external;
+    
     function initialize(address, address) external;
 }

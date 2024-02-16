@@ -24,10 +24,10 @@ const WETHContract = new ethers.Contract(
 
 const setAddresses = async () => {
   console.log("\n*** SETTING ADDRESSES ***");
-   [deployer] = await ethers.getSigners();
-  // deployer = await ethers.getImpersonatedSigner(
-  //   "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
-  // );
+  //  [deployer] = await ethers.getSigners();
+  deployer = await ethers.getImpersonatedSigner(
+    "0xD8a566C83616BBF2B3762439B1C30bCBa10ee885"
+  );
   console.log(`Deployer: ${deployer.address}`);
 };
 
@@ -37,7 +37,7 @@ const deployContracts = async () => {
     "BlastedFactory",
     deployer
   );
-  blastedFactory = await BlastedFactory.deploy(deployer.address);
+  blastedFactory = await BlastedFactory.deploy(deployer.address, deployer.address);
   await blastedFactory.deployed();
   console.log(`blastedFactory deployed to ${blastedFactory.address}`);
 

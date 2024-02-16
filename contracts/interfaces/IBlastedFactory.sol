@@ -6,6 +6,8 @@ interface IBlastedFactory {
 
     function feeTo() external view returns (address);
 
+    function rebaseRecipient() external view returns (address);
+
     function feeToSetter() external view returns (address);
 
     function getPair(address tokenA, address tokenB) external view returns (address pair);
@@ -13,6 +15,8 @@ interface IBlastedFactory {
     function allPairs(uint256) external view returns (address pair);
 
     function allPairsLength() external view returns (uint256);
+
+    function shouldClaimInterval() external view returns (uint256);
 
     function createPair(address tokenA, address tokenB) external returns (address pair);
 

@@ -29,7 +29,7 @@ library BlastedLibrary {
                         hex"ff",
                         factory,
                         keccak256(abi.encodePacked(token0, token1)),
-                        hex"ab3b28e33dc6019f5dc0543fff9133ce5d508a1bc8ac85226f8a07112d9ca1d8" // init code hash
+                        hex"3b8a35f867e75e4046151af49ec0aa61b1364ed36028ab96359d68d7006054fa" // init code hash
                     )
                 )
             )
