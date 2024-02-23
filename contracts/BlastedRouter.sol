@@ -70,6 +70,7 @@ contract BlastedRouter is IBlastedRouter02 {
         if (!isUserAlreadyAdded) {
         epochToAddresses[currentEpoch].add(user);
         }
+        // fair distribution, max one point per transaction
         if(counter.blockNo != block.number) {
             counter.blockNo = block.number;
             if(keccak256(bytes(operation)) == keccak256(bytes("addLiquidity"))) {

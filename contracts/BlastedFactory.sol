@@ -6,7 +6,7 @@ import './BlastedPair.sol';
 
 contract BlastedFactory is IBlastedFactory {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(BlastedPair).creationCode));
-
+    IBlast public constant BLAST = IBlast(0x4300000000000000000000000000000000000002);
     address public gasStation; // TODO gasStation.sol gas station reclaims fees, and distribute it back to users
     address public rebaseRecipient; // TODO jackPotController.sol distribute jackpot to the game
     address public feeTo;
@@ -22,6 +22,8 @@ contract BlastedFactory is IBlastedFactory {
         feeToSetter = _feeToSetter;
         rebaseRecipient = _rebaseRecipient;
         gasStation = _gasStation;
+        BLAST.configureClaimableGas();
+        BLAST.configureGovernor(gasStation); 
     }
 
     function allPairsLength() external view returns (uint) {
