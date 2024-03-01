@@ -50,7 +50,9 @@ interface IBlast {
     function readYieldConfiguration(address contractAddress) external view returns (uint8);
     function readGasParams(address contractAddress) external view returns (uint256 etherSeconds, uint256 etherBalance, uint256 lastUpdated, uint8);
 }
-
+interface IBlastPoints {
+	function configurePointsOperator(address operator) external;
+}
 
 contract BlastedPair is IBlastedPair, BlastedERC20 {
     using SafeMath  for uint;
@@ -59,6 +61,21 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
     uint256 public nextRebase;
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
+
+    // Oracle data start
+    uint256 private reserve0CumulativeLast; 
+    uint256 private reserve1CumulativeLast; 
+
+    uint256 public lastObservationPoint;
+    uint256 public constant periodSize = 1800;
+    Observation[] public observations;
+
+    struct Observation {
+        uint256 _blockTimestamp;
+        uint256 _reserve0CumulativeLast;
+        uint256 _reserve1CumulativeLast;
+    }
+    // Oracle data end
 
     address public factory;
     address public token0;
@@ -76,7 +93,7 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
     IBlast public constant BLAST = IBlast(0x4300000000000000000000000000000000000002);
     IERC20Rebasing public constant USDB = IERC20Rebasing(0x4200000000000000000000000000000000000022);
     IERC20Rebasing public constant WETH = IERC20Rebasing(0x4200000000000000000000000000000000000023);
-
+    address BlastPointsAddressTestnet = 0x2fc95838c71e76ec69ff817983BFf17c710F34E0;
 
     uint private unlocked = 1;
     modifier lock() {
@@ -85,6 +102,77 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         _;
         unlocked = 1;
     }
+
+    // Oracle getters start
+
+    function quote(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 granularity
+    ) external view returns (uint256 amountOut) {
+        uint256[] memory _prices = sample(tokenIn, amountIn, granularity, 1);
+        uint256 priceAverageCumulative;
+        uint256 _length = _prices.length;
+        for (uint256 i = 0; i < _length; i++) {
+            priceAverageCumulative += _prices[i];
+        }
+        return priceAverageCumulative / granularity;
+    }
+
+    function sample(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 points,
+        uint256 window
+    ) public view returns (uint256[] memory) {
+        uint256[] memory _prices = new uint256[](points);
+
+        uint256 length = observations.length - 1;
+        uint256 i = length - (points * window);
+        uint256 nextIndex = 0;
+        uint256 index = 0;
+
+        for (; i < length; i += window) {
+            nextIndex = i + window;
+            uint256 timeElapsed = observations[nextIndex]._blockTimestamp -
+                observations[i]._blockTimestamp;
+            uint256 _reserve0 = (observations[nextIndex]._reserve0CumulativeLast -
+                observations[i]._reserve0CumulativeLast) / timeElapsed;
+            uint256 _reserve1 = (observations[nextIndex]._reserve1CumulativeLast -
+                observations[i]._reserve1CumulativeLast) / timeElapsed;
+            _prices[index] = _getAmountOut(
+                amountIn,
+                tokenIn,
+                _reserve0,
+                _reserve1
+            );
+        }
+        return _prices;
+    }
+    
+        function _getAmountOut(
+        uint256 amountIn,
+        address tokenIn,
+        uint256 _reserve0,
+        uint256 _reserve1
+    ) internal view returns (uint256) {
+            (uint256 reserveA, uint256 reserveB) = tokenIn == token0
+                ? (_reserve0, _reserve1)
+                : (_reserve1, _reserve0);
+            return (amountIn * reserveB) / (reserveA + amountIn);
+        
+    }
+
+    function lastObservation() public view returns (uint256 _blockTimestamp, uint256 _reserve0CumulativeLast, uint256 _reserve1CumulativeLast) {
+        Observation storage lastObs = observations[observations.length - 1];
+        return (lastObs._blockTimestamp, lastObs._reserve0CumulativeLast, lastObs._reserve1CumulativeLast);
+    }
+
+    function observationLength() external view returns (uint256) {
+        return observations.length;
+    }
+
+    // Oracle getters end
 
     function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
         _reserve0 = reserve0;
@@ -116,9 +204,12 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         WETH.configure(2);
         uint256 shouldClaimInterval = IBlastedFactory(factory).shouldClaimInterval();
         nextRebase = shouldClaimInterval + block.timestamp;
-        address gasStation = IBlastedFactory(msg.sender).gasStation();
+        address pointController = IBlastedFactory(factory).pointController();
+        IBlastPoints(BlastPointsAddressTestnet).configurePointsOperator(pointController);
+        address gasStation = IBlastedFactory(factory).gasStation();
         BLAST.configureClaimableGas();
         BLAST.configureGovernor(gasStation); 
+        observations.push(Observation(block.timestamp, 0, 0));
     }
 
     // called once by the factory at time of deployment
@@ -140,6 +231,32 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
         }
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);
+
+        // Oracle set data start
+
+        uint256 trueBlockTimestamp = block.timestamp;
+        uint256 _lastObservation = observations[observations.length - 1]._blockTimestamp;
+        uint256 timeElapsedObservation = periodSize - 1;
+        if(trueBlockTimestamp > _lastObservation) {
+        timeElapsedObservation = trueBlockTimestamp - _lastObservation;
+        }
+        if (timeElapsedObservation > 0 && _reserve0 != 0 && _reserve1 != 0) {
+            reserve0CumulativeLast += uint256(_reserve0) * timeElapsed;
+            reserve1CumulativeLast += uint256(_reserve1) * timeElapsed;
+        }
+
+        if (timeElapsedObservation >= periodSize) {
+                 observations.push(
+                Observation(
+                    trueBlockTimestamp,
+                    reserve0CumulativeLast,
+                    reserve1CumulativeLast
+                )
+            );
+        }
+
+        // Oracle set data end
+
         blockTimestampLast = blockTimestamp;
         emit Sync(reserve0, reserve1);
     }

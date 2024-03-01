@@ -37,7 +37,7 @@ const deployContracts = async () => {
     "BlastedFactory",
     deployer
   );
-  blastedFactory = await BlastedFactory.deploy(deployer.address, deployer.address, deployer.address);
+  blastedFactory = await BlastedFactory.deploy(deployer.address, deployer.address, deployer.address, deployer.address);
   await blastedFactory.deployed();
   console.log(`blastedFactory deployed to ${blastedFactory.address}`);
 

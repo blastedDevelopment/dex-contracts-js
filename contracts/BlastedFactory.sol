@@ -7,6 +7,8 @@ import './BlastedPair.sol';
 contract BlastedFactory is IBlastedFactory {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(BlastedPair).creationCode));
     IBlast public constant BLAST = IBlast(0x4300000000000000000000000000000000000002);
+
+    address public pointController;
     address public gasStation; // TODO gasStation.sol gas station reclaims fees, and distribute it back to users
     address public rebaseRecipient; // TODO jackPotController.sol distribute jackpot to the game
     address public feeTo;
@@ -18,10 +20,11 @@ contract BlastedFactory is IBlastedFactory {
 
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
-    constructor(address _feeToSetter, address _rebaseRecipient, address _gasStation) public {
+    constructor(address _feeToSetter, address _rebaseRecipient, address _gasStation, address _pointController) public {
         feeToSetter = _feeToSetter;
         rebaseRecipient = _rebaseRecipient;
         gasStation = _gasStation;
+        pointController = _pointController;
         BLAST.configureClaimableGas();
         BLAST.configureGovernor(gasStation); 
     }

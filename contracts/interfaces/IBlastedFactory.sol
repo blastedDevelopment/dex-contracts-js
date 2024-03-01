@@ -8,6 +8,8 @@ interface IBlastedFactory {
 
     function rebaseRecipient() external view returns (address);
 
+    function pointController() external view returns (address);
+
     function gasStation() external view returns (address);
 
     function feeToSetter() external view returns (address);
