@@ -146,6 +146,7 @@ contract BlastedPair is IBlastedPair, BlastedERC20 {
                 _reserve0,
                 _reserve1
             );
+            index = index + 1;
         }
         return _prices;
     }
